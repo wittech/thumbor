@@ -31,7 +31,7 @@ ENV WORKON_HOME /app
 WORKDIR /app
 
 COPY requirements.txt /app/requirements.txt
-RUN pip install --trusted-host mirrors.aliyun.com --no-cache-dir \
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host None --no-cache-dir \
    -r /app/requirements.txt
 
 COPY conf/thumbor.conf.tpl /app/thumbor.conf.tpl
