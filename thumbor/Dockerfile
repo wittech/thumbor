@@ -22,9 +22,7 @@ RUN  \
         libboost-python-dev \
         libmemcached-dev \
         gifsicle \
-        ffmpeg \
-        #https://github.com/Kozea/CairoSVG/issues/103
-        python-pip python-dev libffi-dev python-cairo && \
+        ffmpeg && \
     apt-get clean
 
 ENV HOME /app
@@ -36,7 +34,7 @@ COPY requirements.txt /app/requirements.txt
 #https://github.com/Kozea/CairoSVG/issues/232 解决CairoSVG 1.0.22 install broken with pip on Python 2.7
 RUN pip install -U pip -i https://pypi.tuna.tsinghua.edu.cn/simple
 
-RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host None --no-cache-dir \
+RUN pip install --trusted-host None --no-cache-dir \
    -r /app/requirements.txt
 
 COPY conf/thumbor.conf.tpl /app/thumbor.conf.tpl
