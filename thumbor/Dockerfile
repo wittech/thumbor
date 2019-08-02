@@ -32,9 +32,9 @@ WORKDIR /app
 
 COPY requirements.txt /app/requirements.txt
 #https://github.com/Kozea/CairoSVG/issues/232 解决CairoSVG 1.0.22 install broken with pip on Python 2.7
-RUN pip install -U pip -i https://pypi.tuna.tsinghua.edu.cn/simple
+RUN pip install -U pip -i http://mirrors.aliyun.com/pypi/simple
 
-RUN pip install --trusted-host None --no-cache-dir \
+RUN pip install -i http://mirrors.aliyun.com/pypi/simple --trusted-host None --no-cache-dir \
    -r /app/requirements.txt
 
 COPY conf/thumbor.conf.tpl /app/thumbor.conf.tpl
