@@ -22,7 +22,9 @@ RUN  \
         libboost-python-dev \
         libmemcached-dev \
         gifsicle \
-        ffmpeg && \
+        ffmpeg \
+        #https://github.com/Kozea/CairoSVG/issues/103
+        python-pip python-dev libffi-dev python-cairo && \
     apt-get clean
 
 ENV HOME /app
