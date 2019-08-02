@@ -60,7 +60,7 @@ RUN PILLOW_VERSION=$(python -c 'import PIL; print(PIL.__version__)') ; \
     LIB=/usr/lib/x86_64-linux-gnu/ \
     # https://github.com/python-pillow/Pillow/pull/3237 or https://github.com/python-pillow/Pillow/pull/3245
     INCLUDE=/usr/include/x86_64-linux-gnu/ \
-    pip install --no-cache-dir -U --force-reinstall --no-binary=:all: "${PILLOW_PACKET}<=${PILLOW_VERSION}${PILLOW_VERSION_SUFFIX}" \
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --no-cache-dir -U --force-reinstall --no-binary=:all: "${PILLOW_PACKET}<=${PILLOW_VERSION}${PILLOW_VERSION_SUFFIX}" \
     # --global-option="build_ext" --global-option="--debug" \
     --global-option="build_ext" --global-option="--enable-lcms" \
     --global-option="build_ext" --global-option="--enable-zlib" \
