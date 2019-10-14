@@ -86,6 +86,10 @@ PNG_COMPRESSION_LEVEL = {{ PNG_COMPRESSION_LEVEL | default(6) }}
 ## Defaults to: False
 AUTO_WEBP = {{ AUTO_WEBP | default(False) }}
 
+## Specifies whether non-transparent PNG images should be automatically converted to JPEG
+## Defaults to: False
+AUTO_PNG_TO_JPG = {{ AUTO_PNG_TO_JPG | default(False) }}
+
 ## Specify the ratio between 1in and 1px for SVG images. This is only used
 ## whenrasterizing SVG images having their size units in cm or inches.
 ## Defaults to: 150
@@ -429,6 +433,10 @@ REDIS_STORAGE_SERVER_DB = {{ REDIS_STORAGE_SERVER_DB | default(0) }}
 ## Defaults to: None
 REDIS_STORAGE_SERVER_PASSWORD = {{ REDIS_STORAGE_SERVER_PASSWORD | default(None) }}
 
+## Ignore Redis storage errors
+## Defaults to: True
+REDIS_STORAGE_IGNORE_ERRORS = {{ REDIS_STORAGE_IGNORE_ERRORS | default(True) }}
+
 ################################################################################
 
 
@@ -448,7 +456,11 @@ REDIS_RESULT_STORAGE_SERVER_DB = {{ REDIS_RESULT_STORAGE_SERVER_DB | default(0) 
 
 ## Redis storage server password
 ## Defaults to: None
-REDIS_RESULT_STORAGE_SERVER_PASSWORD = {{ REDIS_STORAGE_SERVER_PASSWORD | default(None) }}
+REDIS_RESULT_STORAGE_SERVER_PASSWORD = {{ REDIS_RESULT_STORAGE_SERVER_PASSWORD | default(None) }}
+
+## Ignore Redis result storage errors
+## Defaults to: True
+REDIS_RESULT_STORAGE_IGNORE_ERRORS = {{ REDIS_RESULT_STORAGE_IGNORE_ERRORS | default(True) }}
 
 ################################################################################
 

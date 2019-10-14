@@ -1,35 +1,5 @@
 {{ $CurrentContainer := where $ "ID" .Docker.CurrentContainerID | first }}
 
-{{ define "thumbor-include" }}
-    merge_slashes off;
-    js_include imgpath.js;
-    js_set $file_path file_path;
-{{ end }}
-
-{{ define "thumbor-map" }}
-    map $http_accept $webp_prefix {
-        default   "/default";
-        "~*webp*"  "/auto_webp";
-    }
-    map $request_uri $format {
-        default "";
-        "~*format\(jpeg\)" "image/jpeg";
-        "~*format\(jpg\)" "image/jpeg";
-        "~*format\(png\)" "image/png";
-        "~*format\(gif\)" "image/gif";
-        "~*format\(webp\)" "image/webp";
-        "~*\.jpeg" "image/jpeg";
-        "~*\.jpg" "image/jpeg";
-        "~*\.png" "image/png";
-        "~*\.gif" "image/gif";
-        "~*\.webp" "image/webp";
-    }
-	map $http_accept $auto_webp_content_type {
-		default   $format;
-		"~*webp*"  "image/webp";
-	}
-{{ end }}
-
 {{ define "cors" }}
     add_header 'Access-Control-Allow-Origin' '{{ or .CorsOrigin "*" }}';
     add_header 'Access-Control-Allow-Credentials' 'true';
@@ -40,42 +10,30 @@
 {{ define "thumbor" }}
     {{ $proto := .Proto }}
     {{ $upstream_name := .UpstreamName }}
-    {{ $autoWebp := (first (groupByKeys .Containers "Env.AUTO_WEBP")) }}
     {{ $allowCors := (first (groupByKeys .Containers "Env.THUMBOR_ALLOW_CORS")) }}
     {{ $corsOrigin := (first (groupByKeys .Containers "Env.CORS_ALLOW_ORIGIN")) }}
 
-    location ~* "^/(?<path>..)(?<path2>..)(.+)?$" {
-        root        /data/result_storage;
-        expires     1M;
-
+    location ~* "^/(.+)?$" {
         {{ if or $allowCors $corsOrigin }}
             {{ template "cors" (dict "CorsOrigin" $corsOrigin) }}
         {{ end }}
-        {{ if $autoWebp }}
-            try_files $webp_prefix/$file_path =404;
-            add_header Vary Accept;
-            #if auto webp is on then content-type is based on accept header
-            set $format $auto_webp_content_type;
-        {{ else }}
-            try_files /default/$file_path =404;
-        {{ end }}
-        # if $format is empty (default) then this is ignored
-        add_header Content-Type $format;
-        error_page  404 = @fetch;
+
+        proxy_cache thumbor;
+        proxy_buffering on;
+        proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
     }
 
     location = /healthcheck {
         proxy_pass {{ trim .Proto }}://{{ trim $upstream_name }};
         access_log off;
     }
+{{ end }}
 
-    location @fetch {
-        internal;
-        {{ if or $allowCors $corsOrigin }}
-            {{ template "cors" (dict "CorsOrigin" $corsOrigin) }}
-        {{ end }}
-        proxy_pass {{ trim $proto }}://{{ trim $upstream_name }};
-    }
+{{ define "thumbor-caching" }}
+    {{ $proxyCacheMemorySize := or .ProxyCacheMemorySize "500m" }}
+    {{ $proxyCacheSize := or .ProxyCacheSize "10g" }}
+    {{ $proxyCacheInactive := or .ProxyCacheInactive "48h" }}
+    proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=thumbor:{{ $proxyCacheMemorySize }} inactive={{ $proxyCacheInactive }} max_size={{ $proxyCacheSize }} use_temp_path=off;
 {{ end }}
 
 {{ define "upstream" }}
@@ -97,7 +55,7 @@
 			server 127.0.0.1 down;
 		{{ end }}
 	{{ end }}
-	
+
 {{ end }}
 
 # If we receive X-Forwarded-Proto, pass it through; otherwise, pass along the
@@ -147,9 +105,6 @@ access_log off;
 resolver {{ $.Env.RESOLVERS }};
 {{ end }}
 
-{{ template "thumbor-include" }}
-{{ template "thumbor-map" }}
-
 {{ if (exists "/etc/nginx/proxy.conf") }}
 include /etc/nginx/proxy.conf;
 {{ else }}
@@ -164,6 +119,8 @@ proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
 proxy_set_header X-Forwarded-Ssl $proxy_x_forwarded_ssl;
 proxy_set_header X-Forwarded-Port $proxy_x_forwarded_port;
+
+{{ template "thumbor-caching" (dict "ProxyCacheSize" ($.Env.PROXY_CACHE_SIZE) "ProxyCacheMemorySize" ($.Env.PROXY_CACHE_MEMORY_SIZE) "ProxyCacheInactive" ($.Env.PROXY_CACHE_INACTIVE)) }}
 
 # Mitigate httpoxy attack (see README for details)
 proxy_set_header Proxy "";
@@ -343,7 +300,7 @@ server {
 	ssl_trusted_certificate {{ printf "/etc/nginx/certs/%s.chain.pem" $cert }};
 	{{ end }}
 
-	{{ if (and (ne $https_method "noredirect") (ne $hsts "off")) }}
+	{{ if (not (or (eq $https_method "noredirect") (eq $hsts "off"))) }}
 	add_header Strict-Transport-Security "{{ trim $hsts }}" always;
 	{{ end }}
 
@@ -351,7 +308,7 @@ server {
 	include {{ printf "/etc/nginx/vhost.d/%s" $host }};
 	{{ else if (exists "/etc/nginx/vhost.d/default") }}
 	include /etc/nginx/vhost.d/default;
-	{{ end }}
+    {{ end }}
 
     {{ template "thumbor" (dict "Proto" $proto "UpstreamName" $upstream_name "Containers" $containers) }}
 
@@ -423,7 +380,7 @@ server {
 		include {{ printf "/etc/nginx/vhost.d/%s_location" $host}};
 		{{ else if (exists "/etc/nginx/vhost.d/default_location") }}
 		include /etc/nginx/vhost.d/default_location;
-        {{ end }}
+		{{ end }}
 	}
 }
 
